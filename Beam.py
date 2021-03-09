@@ -239,8 +239,8 @@ print(check*assemble(1.*dx(mesh_CS)))
 plot(mesh_CS)
 c=plot(u_x, mesh = mesh_CS)
 plt.colorbar(c)
-
-plt.show()
+plt.savefig('fig.png')
+#plt.show()
 
 
 
