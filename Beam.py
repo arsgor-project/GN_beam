@@ -135,7 +135,7 @@ def loads_(lds_case, q1):
 
 #### Read BVPs solutions
 mesh_CS = Mesh("temp_solutions/mesh.xml")
-V = FunctionSpace(mesh_CS, 'DG', 1)
+V = FunctionSpace(mesh_CS, 'CG', 1)
 U_x_2, U_y_2, U_z_3, U_x_4, U_y_4, U_z_5 = [Function(V),Function(V),Function(V),Function(V),Function(V),Function(V)]
 T_xx_2, T_xy_2, T_yy_2, T_xz_3, T_yz_3, T_zz_1 = [Function(V),Function(V),Function(V),Function(V),Function(V),Function(V)]
 T_xx_4, T_xy_4, T_yy_4, T_xz_5, T_yz_5, T_zz_3 = [Function(V),Function(V),Function(V),Function(V),Function(V),Function(V)]
@@ -232,14 +232,39 @@ if (plt_res == True):
 z_val = L_beam/2
 sigm_xz = -T_xz_3*h_beam**2*Q_(z_val)/EI + (T_xz_5*h_beam**4 - dz_hh*T_xz_3*h_beam**2)*(df(z_val))/EI
 sigm_zz = -T_zz_1*h_beam*M_(z_val)/EI + (T_zz_3*h_beam**3 - dz_hh*T_zz_1*h_beam)*(f(z_val))/EI
+sigm_xx = -T_xx_2*M_(z_val)/EI + (T_xx_4*h_beam**3-dz_hh*h_beam*T_xx_2)*f_star(z_val)/EI
+sigm_yy = -T_yy_2*M_(z_val)/EI + (T_yy_4*h_beam**3-dz_hh*h_beam*T_yy_2)*f_star(z_val)/EI
+sigm_xy = -T_xy_2*M_(z_val)/EI + (T_xy_4*h_beam**3-dz_hh*h_beam*T_xy_2)*f_star(z_val)/EI
+
 
 u_x = u_h(z_val)[0] + U_x_2*(Kf_hh/EI*f_star(z_val) - u_h(z_val)[1]) + U_x_4*f_star(z_val)/EI
-check = assemble(u_x*dx(mesh_CS))/assemble(1.*dx(mesh_CS))
-print(check*assemble(1.*dx(mesh_CS)))
-plot(mesh_CS)
-c=plot(u_x, mesh = mesh_CS)
+u_y = U_y_2*(Kf_hh/EI*f_star(z_val) - u_h(z_val)[1]) + U_y_4*f_star(z_val)/EI
+
+
+
+P1 = FiniteElement("Lagrange", triangle, 1)
+element = MixedElement([P1,P1])
+VV = FunctionSpace(mesh_CS, element)
+disp = Function(VV)
+
+scale = 0.00005
+assigner = FunctionAssigner(VV, [V, V])
+assigner.assign(disp, [project(scale*u_x,V), project(scale*u_y,V)])
+
+new_mesh = mesh_CS
+ALE.move(new_mesh, disp)
+
+plot(mesh_CS, color='black', linewidth=0.1)
+plotvar = sigm_yy
+c=plot(plotvar, mesh = new_mesh, cmap='viridis')
 plt.colorbar(c)
-plt.savefig('fig.png')
+#plt.title("$max(\sigma_{xx}) = %1.1f$, $min(u_y) = %1.1f$" % (project(plotvar,V).vector().max() , project(plotvar,V).vector().min()))
+plt.title("$\sigma_{yy}$", fontsize = 18)
+
+plt.grid(True)
+plt.xlabel('$x$', fontsize = 15)
+plt.ylabel('$y$', fontsize = 15)
+plt.savefig('sy.png',dpi=300 )
 #plt.show()
 
 
